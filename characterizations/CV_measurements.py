@@ -17,6 +17,7 @@ SENSES = np.array(SENSES)
 SENSES.sort()
 NPOINTS = 41
 FREQUENCIES = [100, 500e3]
+DATAPATH = r'D:\datatest'
 C_P = 500e-12
 
 class dummy_lockin(Instrument):
@@ -78,7 +79,7 @@ def frange(fstart, fstop, npoints):
     return np.append(fstart, np.linspace(fstop/(npoints-1), fstop, (npoints-1)))
 
 class CV_measurement:
-    def __init__(self, name, Vgs, station, lockin_name, fs = FREQUENCIES, npoints = NPOINTS):
+    def __init__(self, name, Vgs, station, lockin_name, fs = FREQUENCIES, npoints = NPOINTS, datapath = DATAPATH):
         self.Vac = 1e-3
         self.station = station
         self.lockin = station[lockin_name]
@@ -91,6 +92,7 @@ class CV_measurement:
         self.Rm = 1e3
         self.cm = plt.cm.Spectral_r
         self.cmap = plt.cm.Spectral_r
+        self.datapath = datapath
         self.recorded_values = ['C_Dp (pF)', 
                                 'R_Dp (MOhm)',
                                 'tand',
@@ -100,7 +102,7 @@ class CV_measurement:
         self.init_data()
         
     def init_data(self):
-        self.data = dd.init_dic_data(self.name)
+        self.data = dd.init_dic_data(self.name, datapath = self.datapath)
         ds = {'name': self.name,
                'V_ac': self.Vac,
                'settings': self.station.snapshot(),
@@ -271,10 +273,13 @@ def get_cap(Vout, f, C_p, V_ac = 1e-3, R_m= 1000., model = 'Rs'):
 
 if __name__ == '__main__':
     Vgs_sim = np.linspace(-5,5,41)  
-    s= dummy_lockin('dummy', 'addr')
-    s.frequency(1)
-    station = qc.Station(s)
-    cvm = CV_measurement('test1', Vgs_sim, s) 
+    try:
+        s= dummy_lockin('dummy_lockin', 'addr')
+        s.frequency(1)
+        station = qc.Station(s)
+    except:
+        pass
+    cvm = CV_measurement('dummy_CV_mmt', Vgs_sim, station, 'dummy_lockin', npoints = 6) 
     cvm.calibrate()
     cvm.measure_CVs()
     
