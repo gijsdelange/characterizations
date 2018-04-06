@@ -15,7 +15,9 @@ ERASE_LINE = 500*'\b'
 SENSES = [0.5, 1, 0.2, 2e-09, 5e-05, 1e-08, 2e-08, 0.0001, 0.05, 0.0002, 5e-06, 5e-08, 1e-06, 0.1, 1e-09, 5e-09, 2e-05, 0.02, 5e-07, 1e-05, 0.01, 2e-07, 0.005, 1e-07, 2e-06, 0.002, 0.001, 0.0005]
 SENSES = np.array(SENSES)
 SENSES.sort()
-DEFAULT_Fs = [1000, 500e3]
+NPOINTS = 41
+FREQUENCIES = [100, 500e3]
+C_P = 500e-12
 
 class dummy_lockin(Instrument):
     def __init__(self, name,  address):
@@ -76,14 +78,15 @@ def frange(fstart, fstop, npoints):
     return np.append(fstart, np.linspace(fstop/(npoints-1), fstop, (npoints-1)))
 
 class CV_measurement:
-    def __init__(self, name, Vgs, lockin, fs = DEFAULT_Fs, npoints = 6, station = qc.Station()):
+    def __init__(self, name, Vgs, station, lockin_name, fs = FREQUENCIES, npoints = NPOINTS):
         self.Vac = 1e-3
-        self.lockin = lockin
+        self.station = station
+        self.lockin = station[lockin_name]
         self.name = name
         self.Vgs = Vgs
-        self.fs = np.linspace(1e3,501e3,11)#frange(fs[0], fs[1], npoints)
-        self.delay = 5*lockin.time_constant()
-        self.C_p = 500e-12
+        self.fs = frange(fs[0], fs[1], npoints)
+        self.delay = 5*self.lockin.time_constant()
+        self.C_p = C_P#
         self.lockin.amplitude(self.Vac)
         self.Rm = 1e3
         self.cm = plt.cm.Spectral_r
@@ -100,7 +103,7 @@ class CV_measurement:
         self.data = dd.init_dic_data(self.name)
         ds = {'name': self.name,
                'V_ac': self.Vac,
-               'settings': station.snapshot(),
+               'settings': self.station.snapshot(),
                'data': {'V_g': self.Vgs,
                        'V_m (V)':  [],
                        'f (Hz)': self.fs,
