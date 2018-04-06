@@ -70,9 +70,7 @@ class dummy_lockin(Instrument):
         return np.abs(Z)    
     
         
-s= dummy_lockin('dummy', 'addr')
-s.frequency(1)
-station = qc.Station(s)
+
 
 def frange(fstart, fstop, npoints):
     return np.append(fstart, np.linspace(fstop/(npoints-1), fstop, (npoints-1)))
@@ -270,9 +268,10 @@ def get_cap(Vout, f, C_p, V_ac = 1e-3, R_m= 1000., model = 'Rs'):
 
 if __name__ == '__main__':
     Vgs_sim = np.linspace(-5,5,41)  
-    
+    s= dummy_lockin('dummy', 'addr')
+    s.frequency(1)
+    station = qc.Station(s)
     cvm = CV_measurement('test1', Vgs_sim, s) 
     cvm.calibrate()
-    #stop
     cvm.measure_CVs()
     
