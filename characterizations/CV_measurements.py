@@ -7,6 +7,7 @@ import time
 import matplotlib.pyplot as plt
 from PyQt5 import QtGui
 import qcodes as qc
+from qcodes import Instrument
 from utils.dic_data import dic2hdf5
 
 
@@ -16,8 +17,9 @@ SENSES = np.array(SENSES)
 SENSES.sort()
 DEFAULT_Fs = [1000, 500e3]
 
-class dummy_lockin:
+class dummy_lockin(Instrument):
     def __init__(self, name,  address):
+        super().__init__(name)
         self.name = name
         self.address = address
         self._amplitude = 1e-3
@@ -29,7 +31,7 @@ class dummy_lockin:
         self.C_h = 20e-12
         self.V_th = -0.3
         self.dV_th = 0.4
-        self.args = (1e8, 0, 0, 1e3, 500e-12)
+        self.args = (1.25e8, 0, 0, 1e3, 500e-12)
     
     def call_parameter(self, par, arg):
         if arg == ():
@@ -70,7 +72,7 @@ class dummy_lockin:
         
 s= dummy_lockin('dummy', 'addr')
 s.frequency(1)
-station = qc.Station()
+station = qc.Station(s)
 
 def frange(fstart, fstop, npoints):
     return np.append(fstart, np.linspace(fstop/(npoints-1), fstop, (npoints-1)))
@@ -94,6 +96,7 @@ class CV_measurement:
                                 'C_Ds (pF)',
                                 'R_Ds (kOhm)',
                                 ]
+        self.init_data()
         
     def init_data(self):
         self.data = dd.init_dic_data(self.name)
@@ -155,7 +158,7 @@ class CV_measurement:
     
     
     def measure_CVs(self, monitor = True):
-        self.init_data()
+        
         d = self.data['data']
         self.figname = self.name + ': '+ self.data['filepath']
         if monitor:
@@ -213,14 +216,16 @@ def ramp_lockin_dc(val, lockin):
         lockin.sine_outdc(nval)
 
 def get_C_p(Vcals, fs, V_ac, C_D = 1e-12, C_off = 0, R_m = 1e3, C_p = 5e-10, ax = None):
-    R_Dp = 1e16
-    R_Ds = 0.1
+    
+    R_Dp = np.real(Z_D(V_ac, Vcals[fs.argmin()].real, R_m))
+    
+    R_Ds = 0.0
     cap_model, pars = fit.make_model(V_out_cap_model, 
                                      p0 = (fs, V_ac, C_D, R_Dp, R_Ds, C_off, R_m, C_p))
     pars['f'].vary = 0
     pars['V_ac'].vary = 0
     pars['R_Ds'].vary = 0
-    pars['R_Dp'].vary = 0
+    pars['R_Dp'].vary = 1
     pars['C_D'].vary = 1
     pars['R_m'].vary = 0
     pars['C_off'].vary = 0
@@ -264,7 +269,10 @@ def get_cap(Vout, f, C_p, V_ac = 1e-3, R_m= 1000., model = 'Rs'):
         return C_D*1e12, Rp/1e6, -X/Y
 
 if __name__ == '__main__':
-    Vgs_sim = np.linspace(-5,5,41)    
+    Vgs_sim = np.linspace(-5,5,41)  
+    
     cvm = CV_measurement('test1', Vgs_sim, s) 
+    cvm.calibrate()
+    #stop
     cvm.measure_CVs()
     
