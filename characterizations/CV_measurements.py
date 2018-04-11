@@ -17,7 +17,7 @@ SENSES = np.array(SENSES)
 SENSES.sort()
 NPOINTS = 41
 FREQUENCIES = [100, 500e3]
-DATAPATH = r'D:\datatest'
+DATAPATH = r'D:\data'
 C_P = 500e-12
 
 class dummy_lockin(Instrument):
@@ -106,7 +106,7 @@ class CV_measurement:
         ds = {'name': self.name,
                'V_ac': self.Vac,
                'settings': self.station.snapshot(),
-               'data': {'V_g': self.Vgs,
+               'data': {'V_g': -self.Vgs,
                        'V_m (V)':  [],
                        'f (Hz)': self.fs,
                        }
@@ -196,7 +196,7 @@ class CV_measurement:
                         else:
                             pass
                             
-                        axs[kk].plot(self.Vgs[:ll+1], dat[:ll+1, nn], 
+                        axs[kk].plot(-self.Vgs[:ll+1], dat[:ll+1, nn],
                                        **kw
                                        )                        
                     plt.gca().relim(visible_only=True)
@@ -207,7 +207,8 @@ class CV_measurement:
                 fig.canvas.draw()
                 QtGui.QGuiApplication.processEvents()
         for key in self.recorded_values:
-            d[key] = np.array(d[key])           
+            d[key] = np.array(d[key])
+        self.data['data']['V_out (V)'] = self.Vouts
         dic2hdf5.save_dict_to_hdf5(self.data, self.data['filepath']) 
 
 def ramp_lockin_dc(val, lockin):
@@ -217,6 +218,7 @@ def ramp_lockin_dc(val, lockin):
     vals = np.linspace(curval, val, int(nvals))
     for nval in vals:
         lockin.sine_outdc(nval)
+        time.sleep(0.005)
 
 def get_C_p(Vcals, fs, V_ac, C_D = 1e-12, C_off = 0, R_m = 1e3, C_p = 5e-10, ax = None):
     
@@ -228,7 +230,7 @@ def get_C_p(Vcals, fs, V_ac, C_D = 1e-12, C_off = 0, R_m = 1e3, C_p = 5e-10, ax 
     pars['f'].vary = 0
     pars['V_ac'].vary = 0
     pars['R_Ds'].vary = 0
-    pars['R_Dp'].vary = 1
+    pars['R_Dp'].vary = 0
     pars['C_D'].vary = 1
     pars['R_m'].vary = 0
     pars['C_off'].vary = 0
