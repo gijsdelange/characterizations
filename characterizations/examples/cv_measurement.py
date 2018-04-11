@@ -1,5 +1,5 @@
-from characterizations import CV_measurements as cvm
-from characterizations.CV_measurements import dummy_lockin
+from characterizations import MOSCAPS as cvm
+from characterizations.MOSCAPS import dummy_lockin
 import qcodes as qc
 try:
     s= cvm.dummy_lockin('dummy_lockin', 'addr')
