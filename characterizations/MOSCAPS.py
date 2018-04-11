@@ -20,6 +20,29 @@ FREQUENCIES = [100, 500e3]
 DATAPATH = r'D:\datatest'
 C_P = 500e-12
 
+class dummy_keith(Instrument):
+    def __init__(self, name, address):
+        super().__init__(name)
+        self.name = name
+        self._rangev = 1
+        
+    def call_parameter(self, par, arg):
+        if arg == ():
+            return getattr(self, '_' + par)
+            
+        else:
+            setattr(self, '_' + par, arg[0])
+            return True
+    def amplitude(self, *arg):
+        return self.call_parameter('amplitude', arg)
+    def rangev(self, *arg):
+        return self.call_parameter('rangev', arg)
+    def volt(self, *arg):
+        return self.call_parameter('volt', arg)
+    def curr(self, *arg):
+        self._curr = np.random.randn()*1e-11 + np.exp(self._volt)/1e16+1e-10
+        return self.call_parameter('curr', arg)
+
 class dummy_lockin(Instrument):
     def __init__(self, name,  address):
         super().__init__(name)
@@ -83,18 +106,22 @@ SETTINGS_TEMPLATE = {'device': 'MOSCAP001',
                     'diameter': 50, #um
                     'Vstart' : 0,
                     'Vend' : 20, 
-                    'npoints' : 101,
-                    'Vrate': 0.125,
+                    'npoints' : 11,
+                    'Vrate': 12.5,
                     'Navg': 1
                     }
 
 class IV_measurement:
     def __init__(self, name, settings, station, keithley = 'keithley'):
         self.keith = station[keithley]
+        self.station = station
         self.settings = settings
         self.Vgs = np.linspace(settings['Vstart'], settings['Vend'], settings['npoints'])
         self.name = name
         self.delay = np.diff(self.Vgs)[0]/self.settings['Vrate']
+        self.datapath = DATAPATH
+        self.A = np.pi*(self.settings['diameter']*1e-4/2)**2
+        self.init_data()
         
     def initialize(self):
         ramp_keith(settings['Vstart'], self.keith)
@@ -114,16 +141,18 @@ class IV_measurement:
             self.data[d] = ds[d]
     def measure_IVs(self):
         d = self.data['data']
+        fig = plt.figure('I-V'); plt.clf()
+        fig = plt.figure('J-E'); plt.clf()
         for kk, sweep_direction in enumerate(['up', 'down']):
-            Vgs = self.Vgs[::(2*KK-1)]
-            d['I'][sweep_direction], d['J'][sweep_direction] = measure_IV(Vgs)
+            Vgs = self.Vgs[::(2*kk-1)]
+            d['I'][sweep_direction], d['J'][sweep_direction] = self.measure_IV(Vgs)
             
             fig = plt.figure('I-V')
             plt.plot(Vgs, d['I'][sweep_direction]/1e-9, label = sweep_direction)
             
             plt.xlabel('Voltage')
             plt.ylabel('Current (nA)')
-            plt.title(fname)
+            plt.title(self.data['filepath'] + ': IV')
             #plt.ylim([-.1,.1])
             plt.legend()
             plt.gca().relim(visible_only=True)
@@ -131,12 +160,12 @@ class IV_measurement:
             fig.canvas.draw()
             
             
-            fig = plt.figure('E-J')
+            fig = plt.figure('J-E')
             plt.semilogy(Vgs, d['J'][sweep_direction]/1e6, label = sweep_direction)
             
             plt.xlabel('Field (MV/cm)')
             plt.ylabel('Current density (A/cm^2)')
-            plt.title(fname)
+            plt.title(self.data['filepath'] + ': J-E')
             plt.legend()
             plt.gca().relim(visible_only=True)
             plt.gca().autoscale_view();
@@ -144,11 +173,13 @@ class IV_measurement:
             fig.canvas.draw()
             QtGui.QGuiApplication.processEvents()
         dic2hdf5.save_dict_to_hdf5(self.data, self.data['filepath'])
-        
+    def get_breakdown_field(self):
+        pass
     def measure_IV(self, Vgs):
         navg = self.settings['Navg']
         temp = 0
-        
+        currents = []
+        Js = []
         for kk,V in enumerate(Vgs):
             if V > self.keith.rangev():
                 self.keith.rangev(V)
@@ -156,11 +187,11 @@ class IV_measurement:
             for j in range(navg):
                 temp = temp + self.keith.curr()
                 time.sleep(self.delay)    
-            current = temp/Navg
+            current = temp/navg
             currents += [current]
-            Js += [current/A]            
+            Js += [current/self.A]            
             temp = 0
-        return currents, Js
+        return np.array(currents), np.array(Js)
 
 class CV_measurement:
     def __init__(self, name, Vgs, station, lockin_name, fs = FREQUENCIES, npoints = NPOINTS, datapath = DATAPATH):
@@ -365,15 +396,26 @@ def get_cap(Vout, f, C_p, V_ac = 1e-3, R_m= 1000., model = 'Rs'):
         return C_D*1e12, Rp/1e6, -X/Y
 
 if __name__ == '__main__':
-    Vgs_sim = np.linspace(-5,5,41)  
     try:
-        s= dummy_lockin('dummy_lockin', 'addr')
-        s.frequency(1)
-        station = qc.Station(s)
+            s= dummy_lockin('dummy_lockin', 'addr')
+            s.frequency(1)
+            k = dummy_keith('keith', 'addr')
+            
+            station = qc.Station(s, k)
+            
     except:
-        pass
-    cvm = CV_measurement('dummy_CV_mmt', Vgs_sim, station, 'dummy_lockin', npoints = 6) 
-    cvm.calibrate()
-    
+            pass
+    if 0:
+        Vgs_sim = np.linspace(-5,5,41)  
+        
+        
+        cvm = CV_measurement('dummy_CV_mmt', Vgs_sim, station, 'dummy_lockin', npoints = 6) 
+        cvm.calibrate()
+    if 1:
+        
+        ivm = IV_measurement('testmoscap', SETTINGS_TEMPLATE, station, keithley = 'keith')
+        ivm.measure_IVs()
+            
+        
     #cvm.measure_CVs()
     
