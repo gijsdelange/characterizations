@@ -73,12 +73,94 @@ class dummy_lockin(Instrument):
         V = V_out_cap_model(f, self.amplitude(), self.c_val(self.sine_outdc(), f),*self.args)
         noiseI, noiseQ = self.noise*np.random.randn(2)
         return np.abs(V+ noiseI + 1.j*noiseQ)    
-    
-        
-
 
 def frange(fstart, fstop, npoints):
     return np.append(fstart, np.linspace(fstop/(npoints-1), fstop, (npoints-1)))
+
+SETTINGS_TEMPLATE = {'device': 'MOSCAP001',
+                    'column' : 4,
+                    'thickness' : 36, #nm
+                    'diameter': 50, #um
+                    'Vstart' : 0,
+                    'Vend' : 20, 
+                    'npoints' : 101,
+                    'Vrate': 0.125,
+                    'Navg': 1
+                    }
+
+class IV_measurement:
+    def __init__(self, name, settings, station, keithley = 'keithley'):
+        self.keith = station[keithley]
+        self.settings = settings
+        self.Vgs = np.linspace(settings['Vstart'], settings['Vend'], settings['npoints'])
+        self.name = name
+        self.delay = np.diff(self.Vgs)[0]/self.settings['Vrate']
+        
+    def initialize(self):
+        ramp_keith(settings['Vstart'], self.keith)
+    def init_data(self):
+        self.data = dd.init_dic_data(self.name, datapath = self.datapath)
+        ds = {'name': self.name,
+               'instrument_settings': self.station.snapshot(),
+               'measurement_settings': self.settings,
+               'data': {'V_g': self.Vgs,
+                        'E': self.Vgs/self.settings['thickness']/1e-7,
+                       'I':  {},
+                       'J': {}
+                       }
+               }
+
+        for d in ds.keys():
+            self.data[d] = ds[d]
+    def measure_IVs(self):
+        d = self.data['data']
+        for kk, sweep_direction in enumerate(['up', 'down']):
+            Vgs = self.Vgs[::(2*KK-1)]
+            d['I'][sweep_direction], d['J'][sweep_direction] = measure_IV(Vgs)
+            
+            fig = plt.figure('I-V')
+            plt.plot(Vgs, d['I'][sweep_direction]/1e-9, label = sweep_direction)
+            
+            plt.xlabel('Voltage')
+            plt.ylabel('Current (nA)')
+            plt.title(fname)
+            #plt.ylim([-.1,.1])
+            plt.legend()
+            plt.gca().relim(visible_only=True)
+            plt.gca().autoscale_view();
+            fig.canvas.draw()
+            
+            
+            fig = plt.figure('E-J')
+            plt.semilogy(Vgs, d['J'][sweep_direction]/1e6, label = sweep_direction)
+            
+            plt.xlabel('Field (MV/cm)')
+            plt.ylabel('Current density (A/cm^2)')
+            plt.title(fname)
+            plt.legend()
+            plt.gca().relim(visible_only=True)
+            plt.gca().autoscale_view();
+            
+            fig.canvas.draw()
+            QtGui.QGuiApplication.processEvents()
+        dic2hdf5.save_dict_to_hdf5(self.data, self.data['filepath'])
+        
+    def measure_IV(self, Vgs):
+        navg = self.settings['Navg']
+        temp = 0
+        
+        for kk,V in enumerate(Vgs):
+            if V > self.keith.rangev():
+                self.keith.rangev(V)
+            self.keith.volt(V)
+            for j in range(navg):
+                temp = temp + self.keith.curr()
+                time.sleep(self.delay)    
+            current = temp/Navg
+            currents += [current]
+            Js += [current/A]            
+            temp = 0
+        return currents, Js
 
 class CV_measurement:
     def __init__(self, name, Vgs, station, lockin_name, fs = FREQUENCIES, npoints = NPOINTS, datapath = DATAPATH):
@@ -107,7 +189,7 @@ class CV_measurement:
         self.data = dd.init_dic_data(self.name, datapath = self.datapath)
         ds = {'name': self.name,
                'V_ac': self.Vac,
-               'settings': self.station.snapshot(),
+               'instrument_settings': self.station.snapshot(),
                'data': {'V_g': self.Vgs,
                        'V_m (V)':  [],
                        'f (Hz)': self.fs,
@@ -211,14 +293,23 @@ class CV_measurement:
         for key in self.recorded_values:
             d[key] = np.array(d[key])           
         dic2hdf5.save_dict_to_hdf5(self.data, self.data['filepath']) 
-
-def ramp_lockin_dc(val, lockin):
-    curval = lockin.sine_outdc()
-    dv = 0.005
+        
+  
+    
+def ramp_source(val, source_voltage, dv = 0.005):
+    curval = source_voltage()
+    dv = dv
     nvals = np.abs((val - curval))/dv 
     vals = np.linspace(curval, val, int(nvals))
     for nval in vals:
-        lockin.sine_outdc(nval)
+        source_voltage(nval)
+
+def ramp_keith(val, keith):
+    ramp_source(val, keith.voltage)
+    
+def ramp_lockin_dc(val, lockin):
+    ramp_source(val, lockin.sine_outdc)
+    
 
 def get_C_p(Vcals, fs, V_ac, C_D = 1e-12, C_off = 0, R_m = 1e3, C_p = 5e-10, ax = None):
     
