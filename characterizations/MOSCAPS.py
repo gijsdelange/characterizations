@@ -322,7 +322,8 @@ class CV_measurement:
                 fig.canvas.draw()
                 QtGui.QGuiApplication.processEvents()
         for key in self.recorded_values:
-            d[key] = np.array(d[key])           
+            d[key] = np.array(d[key])
+        self.data['data']['f (Hz)'] = self.fs
         dic2hdf5.save_dict_to_hdf5(self.data, self.data['filepath']) 
         
   
