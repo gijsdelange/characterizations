@@ -10,7 +10,7 @@ from .lineshapes import (gaussian, lorentzian, voigt, pvoigt, pearson7,
 
 from . import lineshapes
 
-from .asteval import Interpreter
+from asteval import Interpreter
 from .astutils import get_ast_names
 
 class DimensionalError(Exception):

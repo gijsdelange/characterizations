@@ -32,5 +32,5 @@ s21meas = hang_s21(*p0) + noise*(np.random.randn(len(f)) + 1.j*np.random.randn(l
 pars, results, hanger_model, fit_report = res.fit_hanger(f, s21meas)
 
 # plot report
-res.plot_results(s21meas, pars, hanger_model, fit_report)
+res.plot_results(s21meas, pars, hanger_model, fit_report, results)
 
