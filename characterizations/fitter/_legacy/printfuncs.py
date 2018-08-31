@@ -114,6 +114,7 @@ def fit_report(inpars, modelpars=None, show_correl=True, min_correl=0.1,
     namelen = max([len(n) for n in parnames])
     add("[[Variables]]")
     for name in parnames:
+    
         par = params[name]
         space = ' '*(namelen+1-len(name))
         nout = "%s:%s" % (name, space)
@@ -142,6 +143,7 @@ def fit_report(inpars, modelpars=None, show_correl=True, min_correl=0.1,
             add("    %s %s  == '%s'" % (nout, sval, par.expr))
         else:
             add("    %s % .7g (fixed)" % (nout, par.value))
+    
 
     if show_correl:
         add(CORREL_HEAD % min_correl)
@@ -171,7 +173,9 @@ def report_errors(params, **kws):
 
 def report_fit(params, **kws):
     """print a report for fitted params:  see error_report()"""
-    print(fit_report(params, **kws))
+    fr = fit_report(params, **kws)
+    print(fr)
+    return fr
 
 
 def ci_report(ci):
