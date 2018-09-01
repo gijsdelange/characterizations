@@ -36,7 +36,7 @@ try:
 except ImportError:
     pass
 
-from asteval import Interpreter
+from .asteval import Interpreter
 from .astutils import NameFinder
 from .parameter import Parameter, Parameters
 

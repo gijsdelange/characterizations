@@ -4,7 +4,7 @@ Created on Thu Aug 30 21:37:16 2018
 
 @author: gidelang
 """
-
+import characterizations
 import characterizations.resonators as res
 
 import matplotlib.pyplot as plt
