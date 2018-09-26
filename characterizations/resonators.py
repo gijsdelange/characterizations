@@ -28,7 +28,7 @@ def estimate_hanger_pars(xdat, ydat):
     A = (np.abs(s21[0]) + np.abs(s21[-1]))/2.
     f0 = xdat[np.argmin(s21)]
     s21min = np.abs(np.min(s21)/A)
-    print('s21min: ',s21min)
+    #print('s21min: ',s21min)
     FWHM = np.abs(xdat[-1] - xdat[0])/50.
     Ql = f0/FWHM
     Qi = Ql/(s21min)
@@ -42,7 +42,7 @@ def estimate_hanger_pars(xdat, ydat):
     #print(p0, A, s21min)
     return p0
 
-def fit_hanger(xdat, ydat, slope = True, p0 = None):
+def fit_hanger(xdat, ydat, slope = True, p0 = None, **kw):
     # initial guess
     if p0 is None:
         p0 = estimate_hanger_pars(xdat, ydat)
@@ -61,7 +61,7 @@ def fit_hanger(xdat, ydat, slope = True, p0 = None):
     #print(fitted_values)
     pars['Qc'].vary = True
     pars['Qi'].vary = True
-    fit_report = fit.print_fitres(pars)
+    fit_report = fit.print_fitres(pars, **kw)
     return pars, result, hanger_model, fit_report
 
 def plot_results(s21m, params, hanger_model, fit_report, results, resolution = 0.05, figlab = ''):

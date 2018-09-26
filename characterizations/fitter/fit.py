@@ -51,13 +51,13 @@ def fit(pars,data, fit_func, **kw):
     else:
         return result
 
-def print_fitres(pars):
+def print_fitres(pars, **kw):
     p = pars.copy()
     keys = list(p.keys())
     for key in keys:
         if not p[key].vary:
             p.pop(key)
-    return report_fit(p)
+    return report_fit(p, **kw)
 
 
 

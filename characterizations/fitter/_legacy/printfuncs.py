@@ -67,7 +67,7 @@ def gformat(val, length=11):
 CORREL_HEAD = '[[Correlations]] (unreported correlations are < % .3f)'
 
 def fit_report(inpars, modelpars=None, show_correl=True, min_correl=0.1,
-               sort_pars=False):
+               sort_pars=False, **kw):
     """return text of a report for fitted params best-fit values,
     uncertainties and correlations
 
@@ -174,7 +174,8 @@ def report_errors(params, **kws):
 def report_fit(params, **kws):
     """print a report for fitted params:  see error_report()"""
     fr = fit_report(params, **kws)
-    print(fr)
+    if kws.pop('display_report', True):
+        print(fr)
     return fr
 
 
