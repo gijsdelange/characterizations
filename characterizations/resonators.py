@@ -17,7 +17,7 @@ def hanger_S21(f, f0, Q, Qe, A, theta):
     '''
 
     
-    S21 = A*(1.-Q/np.abs(Qe)*np.exp(1.j*theta)/(1.+2.j*Q*(f-f0)/f0))
+    S21 = A*(1.- np.abs(Q)/np.abs(Qe)*np.exp(1.j*theta)/(1.+2.j*np.abs(Q)*(f-f0)/f0))
     return S21
 def Qc_calc(Qeext, theta_ext):
     return (np.real(1./(Qe*np.exp(1.j*theta))))**-1
@@ -27,28 +27,34 @@ def estimate_hanger_pars(xdat, ydat):
     s21 = np.abs(ydat)
     A = (np.abs(s21[0]) + np.abs(s21[-1]))/2.
     f0 = xdat[np.argmin(s21)]
-    s21min = np.min(s21)/A
+    s21min = np.abs(np.min(s21)/A)
+    print('s21min: ',s21min)
     FWHM = np.abs(xdat[-1] - xdat[0])/50.
     Ql = f0/FWHM
-    Qi = Ql/s21min
-    Qc = Qi/(1-s21min)
+    Qi = Ql/(s21min)
+    Qc = Qi/np.abs(1-s21min)
     phi_0 = np.angle(ydat[0])
-    phi_v = np.average( np.diff(np.angle(ydat[:11])) )/(np.diff(xdat)[0])
+    avg_ang1 = np.average( np.diff(np.angle(ydat[:100])) )
+    avg_ang2 = np.average( np.diff(np.angle(ydat[-100:])) )
+    phi_v = np.average([avg_ang1, avg_ang2])/(np.diff(xdat)[0])
         
-    p0 = (xdat, f0, Ql, Qc, A, 0., phi_v, phi_0, 0.)
+    p0 = [xdat, f0, Ql, Qc, A, 0., phi_v, phi_0, 0.]
     #print(p0, A, s21min)
     return p0
 
-def fit_hanger(xdat, ydat, slope = True):
+def fit_hanger(xdat, ydat, slope = True, p0 = None):
     # initial guess
-    p0 = estimate_hanger_pars(xdat, ydat)
-    hanger_model, pars = fit.make_model(hanger_S21_sloped,  p0 = p0)
+    if p0 is None:
+        p0 = estimate_hanger_pars(xdat, ydat)
+    hanger_model, pars = fit.make_model(hanger_S21_sloped,  p0 = tuple(p0))
     pars['f'].vary = False
     if not slope:
         pars['df'].vary = False
-    
+    pars['Q'].min = 0
+    pars['Qe'].min = 0
     pars.add('Qi', expr = '1/(1/Q-abs(1/Qe*cos(theta)))')
     pars.add('Qc', expr = 'abs(Qe/cos(theta))')
+    
     result,  fitted_values= fit.fit(pars, ydat, hanger_model)
         
     #print(result)
@@ -58,15 +64,15 @@ def fit_hanger(xdat, ydat, slope = True):
     fit_report = fit.print_fitres(pars)
     return pars, result, hanger_model, fit_report
 
-def plot_results(s21m, params, hanger_model, fit_report, results, resolution = 0.05):
+def plot_results(s21m, params, hanger_model, fit_report, results, resolution = 0.05, figlab = ''):
     
     pars = params#.copy()
     
     results.minimize()
     to_MHz = 10**((np.floor(np.log10(pars['f0'].value)))-3)
-    print(pars)
+    #print(pars)
     #plt.close('all')
-    fig = plt.figure('Hanger', figsize = (10,4))
+    fig = plt.figure('Hanger_fit: ' + figlab, figsize = (10,4))
     plt.clf()
     plt.subplot(241)
     plt.plot(s21m.real, s21m.imag, '.')

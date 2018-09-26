@@ -3,7 +3,7 @@ import numpy as np
 
 from ..model import Model
 from ..models import ExponentialModel  # arbitrary default
-from asteval import Interpreter
+from ..asteval import Interpreter
 from ..astutils import NameFinder
 from ..minimizer import check_ast_errors
 
