@@ -32,11 +32,13 @@ def estimate_hanger_pars(xdat, ydat):
     FWHM = np.abs(xdat[-1] - xdat[0])/50.
     Ql = f0/FWHM
     Qi = Ql/(s21min)
-    Qc = Qi/np.abs(1-s21min)
+    Qc = Ql/np.abs(1-s21min)
+    
+    #print('Qc: ', Qc)
     phi_0 = np.angle(ydat[0])
-    avg_ang1 = np.average( np.diff(np.angle(ydat[:100])) )
-    avg_ang2 = np.average( np.diff(np.angle(ydat[-100:])) )
-    phi_v = np.average([avg_ang1, avg_ang2])/(np.diff(xdat)[0])
+    avg_ang = np.average( np.diff(np.angle(ydat)) )
+    
+    phi_v = avg_ang/(np.diff(xdat)[0])
         
     p0 = [xdat, f0, Ql, Qc, A, 0., phi_v, phi_0, 0.]
     #print(p0, A, s21min)
