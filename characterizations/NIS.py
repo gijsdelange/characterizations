@@ -31,7 +31,7 @@ def estimate_dIdV_pars(Vbiass, ys):
 
 def fit_dIdV(Vbiass, Gs):
     '''
-    Vbias in Volts and ys in conductance
+    Vbias in Volts and Gs in conductance
     '''
     
     p0 = estimate_dIdV_pars(Vbiass, Gs)
@@ -54,7 +54,7 @@ def test_fit():
     V_Delta = 150e-6
     V_Gamma = 10e-6
     
-    simys = dIdV(Vs, V_Delta, V_Gamma, 2.) + 0.05*np.random.randn(len(Vs))
+    simys = dIdV(Vs, V_Delta, V_Gamma, 2.) + 0.1*np.random.randn(len(Vs))
     
     plt.figure('DOS')
     plt.clf()
@@ -63,3 +63,4 @@ def test_fit():
     pars, result, dIdV_model, fit_report = fit_dIdV(Vs, simys)
     simfit = dIdV_model(pars)
     plt.plot(Vs, simfit)
+    plt.yscale('log')

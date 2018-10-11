@@ -37,8 +37,9 @@ def estimate_hanger_pars(xdat, ydat):
     #print('Qc: ', Qc)
     phi_0 = np.angle(ydat[0])
     avg_ang = np.average( np.diff(np.angle(ydat)) )
+    avg_ang = np.diff(np.angle(ydat))
     
-    phi_v = avg_ang/(np.diff(xdat)[0])
+    phi_v = -np.average((avg_ang[np.abs(avg_ang)<np.pi/4]))/(np.diff(xdat)[0])
         
     p0 = [xdat, f0, Ql, Qc, A, 0., phi_v, phi_0, 0.]
     #print(p0, A, s21min)
@@ -79,6 +80,10 @@ def plot_results(s21m, params, hanger_model, fit_report, results, resolution = 0
     plt.subplot(241)
     plt.plot(s21m.real, s21m.imag, '.')
     df = resolution*pars['f0'].value/ pars['Q'].value
+    dfdat = np.diff(pars['f'].value)[0]
+    if df > dfdat:
+        df = dfdat
+        
     fs = pars['f'].value
     f_ran = (fs[-1] - fs[0])
     fs_dat_MHz = pars['f'].value/to_MHz
