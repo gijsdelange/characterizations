@@ -24,7 +24,7 @@ def dIdV(Vbias, V_Delta, V_Gamma, GN):
 def estimate_dIdV_pars(Vbiass, ys):
     GN = np.average(ys[:10])
     ind = int(len(Vbiass)/4)
-    print('index: ', ind, Vbiass[ind] )
+    #print('index: ', ind, Vbiass[ind] )
     V_Delta = np.abs(Vbiass[ind])
     V_Gamma = 0.01*V_Delta
     return [Vbiass, V_Delta, V_Gamma, GN]
