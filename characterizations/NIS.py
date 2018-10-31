@@ -38,7 +38,7 @@ def fit_dIdV(Vbiass, Gs):
     dIdV_model, pars = fit.make_model(dIdV,  p0 = tuple(p0))    
     pars['Vbias'].vary = False
     pars['V_Delta'].min = 0
-    pars['V_Gamma'].min = 1e-6 # minimum of 1 uV
+    pars['V_Gamma'].min = 1e-12 # minimum of 1 uV
     pars.add('Hardness', expr = 'V_Gamma/sqrt(V_Gamma**2+V_Delta**2)')
     
     result,  fitted_values= fit.fit(pars, Gs, dIdV_model)
