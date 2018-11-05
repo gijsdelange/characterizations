@@ -1,6 +1,7 @@
 import numpy as np
 import scipy as sp
-from scipy.optimize import curve_fit
+from .fitter import fit
+import matplotlib.pyplot as plt
 
 def demod_noref(sig, dIQ, kernel):    
     IF_per = len(dIQ)
@@ -75,11 +76,6 @@ def IQangle(data):
 def IQrotate(data, theta):
     return data*np.exp(1.j*theta)
 
-
-
-def QPP_Lorentzian(f, Gamma, a, b):
-    return a*(4*Gamma/((2*Gamma)**2+(2*np.pi*f)**2))+b
-
 def PSD(ts, ys):
     '''
     returns the PSD of a timeseries and freuency axis
@@ -87,11 +83,11 @@ def PSD(ts, ys):
     ys_fft = np.abs(np.fft.fft(ys))**2
     
     dt = np.diff(ts)[0]
-    fmax = 1./(dt)
-    df = 1./(len(ts)*dt)
-    pts_fft = len(ts)/2
-    fs1 = np.linspace(0, fmax/2., pts_fft + 1)
-    fs2 = np.linspace(fmax/2.-df, df, pts_fft - 1)
+    fmax = 1. / (dt)
+    df = 1. / (len(ts)*dt)
+    pts_fft = len(ts) / 2
+    fs1 = np.linspace(0, fmax / 2., pts_fft + 1)
+    fs2 = np.linspace(fmax / 2.-df, df, pts_fft - 1)
     fs = np.append(fs1, -fs2)
     return fs, ys_fft
 
@@ -99,7 +95,7 @@ def PSDs(ts, ys_array):
     '''
     returns the averaged PSD of an array of timeseries with freuency axis
     '''
-    ys_fft = 0.*ys_array[0,:]
+    ys_fft = 0.*ys_array[0,:].real
     for ys in ys_array:
         
         fs, ys_fft_i = PSD(ts, ys) 
@@ -110,12 +106,12 @@ def threshold_shots(sorted_shots, xvals, xlab = '', title = '',iq_centers = None
     
     # sorted shot data = [sweep_value, rep]
     shp = np.shape(sorted_shots)
-    print 'npoints: ',shp[1]
+    print('npoints: ',shp[1])
     IQ_pairs = sorted_shots.flatten()
     if iq_centers == None:
         nstates = 2
         theta = IQrotate_hist(IQ_pairs )
-        print 'theta: ',theta
+        print('theta: ',theta)
         IQ_pairs_rot = np.exp(1.0j*theta)*IQ_pairs
         avg_IQ = np.average(IQ_pairs_rot)
         
@@ -148,4 +144,37 @@ def threshold_shots(sorted_shots, xvals, xlab = '', title = '',iq_centers = None
     plt.xlabel(xlab)
     plt.legend()
     plt.title(title)
-    return Ps.transpose(),states
+    
+    
+    return Ps.transpose(), states
+    
+def QPP_Lorentzian(f, Gamma, a, b):
+    return a*(4*Gamma/((2*Gamma)**2+(2*np.pi*f)**2))+b
+    
+def estimate_QPP_pars(fs, ys):
+    may = np.max(ys)
+    miy = np.min(ys)
+    roll_off = fs[ys - miy < (may-miy)/2.][0]
+    a = may - miy
+    b = miy
+    Gamma = np.pi*roll_off
+    return fs, Gamma, a, b
+
+
+
+def fit_QPP(fs, PSD):
+    '''
+    fit PSD to QPP spectrum  
+    '''
+    
+    p0 = estimate_QPP_pars(fs, PSD)
+    QPP_model, pars = fit.make_model(QPP_Lorentzian,  p0 = tuple(p0))    
+    pars['f'].vary = False
+    pars['Gamma'].min = 0
+    pars.add('T_qp', expr = '1/Gamma')
+    result,  fitted_values = fit.fit(pars, PSD, QPP_model)
+    pars['T_qp'].vary = True
+    fit_report = fit.print_fitres(pars)
+    return pars, result, QPP_model, fit_report
+    
+    

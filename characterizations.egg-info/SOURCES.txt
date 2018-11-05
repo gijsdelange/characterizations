@@ -2,6 +2,7 @@ characterizations/MOSCAPS.py
 characterizations/NIS.py
 characterizations/__init__.py
 characterizations/mobility.py
+characterizations/quasiparticles.py
 characterizations/resonators.py
 characterizations.egg-info/PKG-INFO
 characterizations.egg-info/SOURCES.txt
