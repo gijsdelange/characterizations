@@ -86,20 +86,22 @@ def PSD(ts, ys):
     fmax = 1. / (dt)
     df = 1. / (len(ts)*dt)
     pts_fft = len(ts) / 2
-    fs1 = np.linspace(0, fmax / 2., pts_fft + 1)
-    fs2 = np.linspace(fmax / 2.-df, df, pts_fft - 1)
+    fs1 = np.linspace(0, fmax / 2.-df, pts_fft)
+    fs2 = np.linspace(fmax / 2., df, pts_fft)
     fs = np.append(fs1, -fs2)
+    #print(len(fs), len(ys_fft))
     return fs, ys_fft
 
 def PSDs(ts, ys_array):
     '''
     returns the averaged PSD of an array of timeseries with freuency axis
     '''
+    shp = ys_array.shape
     ys_fft = 0.*ys_array[0,:].real
     for ys in ys_array:
         
         fs, ys_fft_i = PSD(ts, ys) 
-        ys_fft += ys_fft_i
+        ys_fft += ys_fft_i/shp[0]
     return fs, ys_fft
 
 def threshold_shots(sorted_shots, xvals, xlab = '', title = '',iq_centers = None, max_dist = np.inf):
