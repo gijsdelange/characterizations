@@ -5,12 +5,13 @@ import matplotlib.pyplot as plt
 
 def demod_noref(sig, dIQ, kernel):    
     IF_per = len(dIQ)
-    rd = sig.reshape(len(sig)/IF_per,IF_per)
-    rd = (rd*dIQ)
-    demod_dat = np.average(rd,axis = 1)
-    demod_dat.shape = (len(demod_dat)/kernel, kernel)
-    
-    return 2 * np.average(demod_dat, axis = 1)
+    shp = list(sig.shape)
+    nw_shp = tuple(shp[:-1] + [int(shp[-1]/IF_per), IF_per])
+    rd = sig.reshape(nw_shp)
+    rd =  rd * dIQ
+    demod_dat = np.average(rd,axis = -1) 
+     
+    return 2 * average_data(demod_dat, kernel)
 
 def demod_ref(sig, reference, dIQ, kernel): 
     '''
@@ -19,15 +20,18 @@ def demod_ref(sig, reference, dIQ, kernel):
     '''
     
     IF_per = len(dIQ)
-    rd = sig.reshape(int(len(sig)/IF_per),IF_per)
-    ref = reference.reshape(int(len(reference)/IF_per),IF_per)
+    shp = list(sig.shape)
+    nw_shp = tuple(shp[:-1] + [int(shp[-1]/IF_per), IF_per])
+    rd = sig.reshape(nw_shp)
+    ref = reference.reshape(nw_shp)
     ref_dem = ref * dIQ
-    ref_angles = np.angle(np.average(ref_dem,axis = 1))  
-    rd = (rd*dIQ)
-    demod_dat = np.average(rd,axis = 1)*np.exp(-1.j*ref_angles) # only correcting for phase noise/drifts
-    demod_dat.shape = (int(len(demod_dat)/kernel), kernel)
+    ref_angles = np.angle(np.average(ref_dem, axis = -1))  
+    rd =  rd * dIQ
+    demod_dat = np.average(rd,axis = -1)*np.exp(-1.j*ref_angles) # only correcting for phase noise/drifts
+   
     
-    return 2 * np.average(demod_dat, axis = 1)
+    return 2 * average_data(demod_dat, kernel)
+
 
 def demod(sig, dIQ, kernel, reference = None):
     if reference is not None:
@@ -36,9 +40,12 @@ def demod(sig, dIQ, kernel, reference = None):
         return demod_noref(sig, dIQ, kernel)
 
 def average_data(data, window):
-    shp = list(data.shape)
-    nw_shp = shp[:-1] + [shp[-1]/window, window]
-    return np.average(data.reshape(nw_shp), axis = -1)
+    if window ==1:
+        return data
+    else:
+        shp = list(data.shape)
+        nw_shp = shp[:-1] + [int(shp[-1]/window), window]
+        return np.average(data.reshape(nw_shp), axis = -1)
 
 def demod_ref_gen(sig, reference, dIQ, kernel): 
     '''
