@@ -39,7 +39,7 @@ def find_V_th_and_R_series(V_gs, Gs):
     noise = np.std(Gs[:10])
     return V_gs[Gs > 5*noise][0], 1./(G0*Gs[-1])
 
-def fit_pinchoff(V_gs, Gs, C_g, L, mu_init = 5e3):
+def fit_pinchoff(V_gs, Gs, C_g, L, mu_init = 5e3, fixed_V_th = None):
     '''
     Fits pinch off curves using standard mobility 
     args: 
@@ -49,23 +49,33 @@ def fit_pinchoff(V_gs, Gs, C_g, L, mu_init = 5e3):
         L = Length of the wire in m
     
     returns:
-        fit_report
+        pars, fit result, pinch_off_model
     '''
     V_th, R_series = find_V_th_and_R_series(V_gs, Gs)
+    if fixed_V_th:
+        V_th = fixed_V_th
     p0 = (V_gs, V_th, R_series, L, C_g, mu_init)
     pinch_off_model, pars = fit.make_model(pinch_off,  p0 = p0)
+    if fixed_V_th:
+        print('fixing V_th to ', V_th)
+        pars['V_th'].vary = False
     pars['L'].vary = False
     pars['C_g'].vary = False
     #pars['mu'].
     result = fit.fit(pars, Gs, pinch_off_model)
+    fit_report = fit.print_fitres(pars)
     return pars, result, pinch_off_model
     
     
 def generate_sample_data(V_gs, V_th, R_series, L, C_g, mu):    
     return pinch_off(V_gs, V_th, R_series, L, C_g, mu) + 0.02*np.random.randn(len(V_gs))
     
-
-       
+def mobility(G, V_th, V_g, R_s, L, C_g):
+    A = C_g*(V_g-V_th)/L**2
+    G_w = 1./(1./G - R_s)
+    mu = G_w/A
+    return mu
+    
 def get_peak_dG_dV(V_gs, Gs):
     return np.max(np.diff(Gs)/np.diff(V_gs))
 

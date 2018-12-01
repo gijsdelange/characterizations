@@ -9,7 +9,7 @@ def demod_noref(sig, dIQ, kernel):
     nw_shp = tuple(shp[:-1] + [int(shp[-1]/IF_per), IF_per])
     rd = sig.reshape(nw_shp)
     rd =  rd * dIQ
-    demod_dat = np.average(rd,axis = -1) 
+    demod_dat = np.average(rd, axis=-1) 
      
     return 2 * average_data(demod_dat, kernel)
 
@@ -25,7 +25,7 @@ def demod_ref(sig, reference, dIQ, kernel):
     rd = sig.reshape(nw_shp)
     ref = reference.reshape(nw_shp)
     ref_dem = ref * dIQ
-    ref_angles = np.angle(np.average(ref_dem, axis = -1))  
+    ref_angles = np.angle(np.average(ref_dem, axis=-1))  
     rd =  rd * dIQ
     demod_dat = np.average(rd,axis = -1)*np.exp(-1.j*ref_angles) # only correcting for phase noise/drifts
    
@@ -33,7 +33,7 @@ def demod_ref(sig, reference, dIQ, kernel):
     return 2 * average_data(demod_dat, kernel)
 
 
-def demod(sig, dIQ, kernel, reference = None):
+def demod(sig, dIQ, kernel, reference=None):
     if reference is not None:
         return demod_ref(sig, reference, dIQ, kernel)
     else:
@@ -45,7 +45,7 @@ def average_data(data, window):
     else:
         shp = list(data.shape)
         nw_shp = shp[:-1] + [int(shp[-1]/window), window]
-        return np.average(data.reshape(nw_shp), axis = -1)
+        return np.average(data.reshape(nw_shp), axis=-1)
 
 def demod_ref_gen(sig, reference, dIQ, kernel): 
     '''
@@ -59,9 +59,9 @@ def demod_ref_gen(sig, reference, dIQ, kernel):
     rd = sig.reshape(nw_shp)
     ref = reference.reshape(nw_shp)
     ref_dem = ref * dIQ
-    ref_angles = np.angle(np.average(ref_dem,axis = -1))  
+    ref_angles = np.angle(np.average(ref_dem,axis=-1))  
     rd =  rd * dIQ
-    demod_dat = np.average(rd,axis = -1)*np.exp(-1.j*ref_angles) # only correcting for phase noise/drifts
+    demod_dat = np.average(rd,axis=-1)*np.exp(-1.j*ref_angles) # only correcting for phase noise/drifts
    
     
     return 2 * average_data(demod_dat, kernel)
@@ -111,7 +111,7 @@ def PSDs(ts, ys_array):
         ys_fft += ys_fft_i/shp[0]
     return fs, ys_fft
 
-def threshold_shots(sorted_shots, xvals, xlab = '', title = '',iq_centers = None, max_dist = np.inf):
+def threshold_shots(sorted_shots, xvals, xlab='', title='',iq_centers=None, max_dist=np.inf):
     
     # sorted shot data = [sweep_value, rep]
     shp = np.shape(sorted_shots)
@@ -146,8 +146,8 @@ def threshold_shots(sorted_shots, xvals, xlab = '', title = '',iq_centers = None
     plt.figure()
     for state in range(nstates):
         #Ps[state,:] = np.average((states == state), axis = 0)
-        Ps[state,:] = np.average((states == state) , axis = 0)#/np.sum(selector, axis = 0)
-        plt.plot(xvals, Ps[state,:], label = labels[state])
+        Ps[state,:] = np.average((states==state) , axis=0)#/np.sum(selector, axis = 0)
+        plt.plot(xvals, Ps[state,:], label=labels[state])
     
     plt.ylabel('Probability')
     plt.xlabel(xlab)
@@ -177,10 +177,10 @@ def fit_QPP(fs, PSD):
     '''
     
     p0 = estimate_QPP_pars(fs, PSD)
-    QPP_model, pars = fit.make_model(QPP_Lorentzian,  p0 = tuple(p0))    
+    QPP_model, pars = fit.make_model(QPP_Lorentzian,  p0=tuple(p0))    
     pars['f'].vary = False
     pars['Gamma'].min = 0
-    pars.add('T_qp', expr = '1/Gamma')
+    pars.add('T_qp', expr='1/Gamma')
     result,  fitted_values = fit.fit(pars, PSD, QPP_model)
     pars['T_qp'].vary = True
     fit_report = fit.print_fitres(pars)
