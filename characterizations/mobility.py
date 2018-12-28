@@ -28,16 +28,23 @@ def pinch_off(V_g, V_th, R_series, L, C_g, mu):
     
     return G*G_series/(G + G_series)/G0
 
+
 def find_V_th_and_R_series(V_gs, Gs):
     '''
     Find V_th as the point at which conductance (Gs) > 5*noise 
     estimated from the first 10 points of the pinch-off trace
     '''
     if np.argmin(V_gs) > 0:
-        V_gs = V_gs[::-1] # reverse sweep
+        V_gs = V_gs[::-1]  # reverse sweep
         Gs = Gs[::-1]
-    noise = np.std(Gs[:10])
-    return V_gs[Gs > 5*noise][0], 1./(G0*Gs[-1])
+
+    noise_estimation_sample = Gs[:10]
+    noise = np.std(noise_estimation_sample)
+    avg = np.mean(noise_estimation_sample)
+
+    vgs_threshold = V_gs[np.searchsorted(Gs, avg + 5 * noise)]
+    return vgs_threshold, 1. / (G0 * Gs[-1])
+
 
 def fit_pinchoff(V_gs, Gs, C_g, L, mu_init = 5e3, fixed_V_th = None):
     '''
